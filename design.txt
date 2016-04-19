@@ -1,0 +1,24 @@
+Additional properties added to models
+
+Game : guess ,target
+guess is a string initialized to be "------" when a game is created , the string will be filled in with user guesses 
+target is the word that the user has to guess, this word is chosen randomly from an array of words 
+
+Score : won ,lost ,win_percent
+1) won : tracks the number of matches won
+2) lost : tracks the number of matched lost 
+3) win_percent : the win percentage of the specific user 
+Having all the user score information in one model which gets updated reduces the number of entries in the datastore and easier to query the datastore, score for the user is updated for every game
+
+datastore keys are specified by user to all entries  
+
+Trade-offs
+1)All responses are in the form of json.dumps so any client (web/mobile) can reconstruct it 
+2)Make_move api is closely tied to the hangman game hence can be difficult to incorporate into other game logic
+3)When a partial answer is given to the user as a hint the code always returns the first 3 or 4 alphabets even if the user has already guessed the first 4 alphabets
+4)The number of attempts is 10 which is higher than the recommended attempts for a hangman game
+5)The word the user has to guess must be 6 charecters long
+
+Difficulties faced
+comming up with a fool proof game logic with error handling  
+took some time to come up with a method to store game hsitory

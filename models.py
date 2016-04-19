@@ -55,7 +55,7 @@ class Game(ndb.Model):
 
     def end_game(self, won=False,user_name=None,guesses=None):
         """Ends the game - if won is True, the player won. - if won is False,
-        the player lost."""
+        the player lost. also updates the player score win/loss guesses and win percentage"""
         self.game_over = True
         self.put()
         key = ndb.Key( Score,user_name ).get()
@@ -73,7 +73,7 @@ class Game(ndb.Model):
         # return        
 
     def store_move(self ,message=None,game=None,guess=None):
-        # key = ndb.Key( Game,user ).get()
+        """ store each move to get game history """
         hist = json.loads(game.history)
         hist.append( (guess,message) )
         game.history = json.dumps(hist)

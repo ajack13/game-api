@@ -5,6 +5,8 @@ The project has code for the classic game hangman but can be extended to create 
 ###  The Hangman Game
 The classic game hangman gives you 10 chances to guess a word, one alphabet at a time if you can guess the word before you attempts run out then you win the game
 
+The game will give you a hint if you have'nt guessed the word correctly at the 5th attempt
+
 ### Up and running with the game api
 Download google app engine for your operating system and register you app in the google developer console
 

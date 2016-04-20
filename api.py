@@ -187,8 +187,8 @@ class hangman(remote.Service):
         else:
           game.store_move(guess=userGuess, message="you're wrong",game=game)
           # provide hint message 
-          if(game.attempts_remaining == 5):
-            return game.to_form("seems like you need help the first 3 charecters are "+wordLst[0]+wordLst[1]+wordLst[2])
+          if(game.attempts_remaining == 5 or game.attempts_remaining == 6):
+            return game.to_form(" HINT : seems like you need help the first 3 charecters are "+wordLst[0]+wordLst[1]+wordLst[2])
           return game.to_form("Nope , You're wrong")
 
         # check if user has run out of attempts

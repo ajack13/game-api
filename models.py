@@ -73,7 +73,7 @@ class Game(ndb.Model):
         # return        
 
     def store_move(self ,message=None,game=None,guess=None):
-        """ store each move to get game history """
+        """ store each move for game history """
         hist = json.loads(game.history)
         hist.append( (guess,message) )
         game.history = json.dumps(hist)

@@ -7,6 +7,8 @@ The classic game hangman gives you 10 chances to guess a word, one alphabet at a
 
 The game will give you a hint if you have'nt guessed the word correctly at the 5th attempt
 
+Response are in the form of a string so they can be reconstructed to json in the client
+
 ### Up and running with the game api
 Download google app engine for your operating system and register you app in the google developer console
 

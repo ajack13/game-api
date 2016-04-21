@@ -77,16 +77,17 @@ The datastore is typically at http://localhost:8000, but you may need to access 
     - response is a succes message(string) 
     
  - **get_high_scores**
-    - args : none
+    - args : limit
     - type : GET
    - Generate a list of high scores in descending order, a leader-board!
     - Accepts an optional parameter `number_of_results` that limits the number of results returned.
     - returns a list of tuples ,users and their score
     
  - **get_user_rankings**
-    - args : none
+    - args : limit
     - type : GET
-    - Ranking the performance of each player based on number of wins.
+    - Ranking the performance of each player based on number of wins. 
+    - Can also limit top results based on user input
     - ranked based on win percentage
     - returns a list of tuples , users and their win percentage
  

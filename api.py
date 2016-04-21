@@ -29,6 +29,7 @@ MAKE_MOVE_REQUEST = endpoints.ResourceContainer(MakeMoveForm,urlsafe_game_key=me
 USER_REQUEST = endpoints.ResourceContainer(user_name=messages.StringField(1),
                                            email=messages.StringField(2))
 get_user_name = endpoints.ResourceContainer(user_name=messages.StringField(1))
+set_limit = endpoints.ResourceContainer(limit=messages.IntegerField(1))
 GET_HISTORY = endpoints.ResourceContainer(urlsafe_game_key=messages.StringField(1))
 MEMCACHE_MOVES_REMAINING = 'MOVES_REMAINING'
 GET_GAME_REQUEST = endpoints.ResourceContainer(
@@ -257,15 +258,18 @@ class hangman(remote.Service):
      returns  
      json dumps : list of tuples ('username','score') 
     '''
-    @endpoints.method(name="high_scores",http_method="GET",response_message=high_score)
+    @endpoints.method(name="high_scores",request_message=set_limit,http_method="GET",response_message=high_score)
     def high_scores(self,request):
-       q = Score.query()
-       # query scores in decending order
-       res = q.order(-Score.guesses)
-       arr = []
-       for i in res:
-        arr.append( (i.user, i.guesses) )
-       return high_score(response=str(arr) ) 
+      q = Score.query()
+      if(request.limit):
+        res = q.order(-Score.guesses).fetch(request.limit)
+        # query scores in decending order
+      else:
+        res = q.order(-Score.guesses)
+      arr = []
+      for i in res:
+       arr.append( (i.user, i.guesses) )
+      return high_score(response=str(arr) ) 
 
     ''' 
      Get the ranking table (decided by win percentage of user) 
@@ -273,10 +277,13 @@ class hangman(remote.Service):
      returns  
      json dumps : list of tuples ('username','win_percent')
     '''
-    @endpoints.method(name="ranking_table",http_method="GET",response_message=high_score)
+    @endpoints.method(name="ranking_table",request_message=set_limit,http_method="GET",response_message=high_score)
     def ranking_table(self,request):
        q = Score.query()
-       res = q.order(-Score.win_percent)
+       if (request.limit):
+         res = q.order(-Score.win_percent).fetch(request.limit)
+       else:
+         res = q.order(-Score.win_percent)
        arr = []
        for i in res:
         arr.append( (i.user, i.win_percent) )

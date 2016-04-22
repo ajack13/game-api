@@ -324,7 +324,7 @@ class hangman(remote.Service):
      returns  
      json dumps : list of tuples ('move_made','response msg') 
     '''
-    @endpoints.method(http_method="POST",name="get_game_history",request_message=GET_HISTORY,
+    @endpoints.method(http_method="GET",name="get_game_history",request_message=GET_HISTORY,
                       response_message=StringMessage)
     def get_game_history(self,request):
        """Get history of all moves played in a game"""

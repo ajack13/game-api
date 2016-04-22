@@ -63,15 +63,15 @@ class hangman(remote.Service):
                     'A User with that name already exists!')
         p_key = ndb.Key(User,request.user_name)
         # add user details
-        user = User(name = request.user_name, email = request.email 
-                    , key = p_key)
+        user = User(name = request.user_name, email = request.email ,won=0,
+                    loss=0,win_percent=0, key = p_key)
         user.put()
         
         s_key = ndb.Key(Score,request.user_name)
         # enter score entity for the user 
-        score = Score(won=0,lost=0,guesses=0,win_percent=0,
-                        user=request.user_name,key=s_key)
-        score.put()
+        # score = Score(won=0,lost=0,guesses=0,win_percent=0,
+        #                 user=request.user_name,key=s_key)
+        # score.put()
         return StringMessage(message='User {} created!'.format(
                 request.user_name))
 
@@ -147,15 +147,24 @@ class hangman(remote.Service):
         """Makes a move. Returns a game state with message"""
         # get game with url_safe key
         game = get_by_urlsafe(request.urlsafe_game_key, Game)
-
+        
+        p_key = ndb.Key(Game,game.user_name)
+        c_id = Score.allocate_ids(size = 1 , parent=p_key)[0]
+        s_key = ndb.Key(Score , c_id ,parent=p_key)
+        # s_key = ndb.Key(Game,game.user_name) 
+        
         # check if game is over
         if game.game_over:
             return game.to_form('Game already over!')
         # reduce the remaining_attempts by one to keep track of number of moves left
         game.attempts_remaining -= 1
         userGuess = request.guess.upper()
+        
         # check if user guessed the complete word
         if userGuess == game.target:
+            score = Score(won=True,guesses=game.attempts_remaining,
+                        user=game.user_name,key=s_key)
+            score.put()
             game.end_game(won=True,user_name=game.user_name,
                           guesses=game.attempts_allowed - game.attempts_remaining)
             # store game entry for game history
@@ -164,6 +173,7 @@ class hangman(remote.Service):
             game.guess = userGuess
             game.put()
             return game.to_form('You win!')        
+        
         # check if user has entered more than one alphabet but not the whole word
         if len(userGuess) > 1:
             game.store_move(guess=userGuess, message='Invalid entry',game=game)
@@ -172,6 +182,7 @@ class hangman(remote.Service):
         wordLst = list (game.target)
         wordFlag = False
         word = list(game.guess)
+        
         # check user entry for any correct guesses
         for idx,val in enumerate(wordLst):
           if val == userGuess:
@@ -185,6 +196,9 @@ class hangman(remote.Service):
           if game.guess == game.target:
             game.end_game(won=True,user_name=game.user_name,
                           guesses=game.attempts_allowed - game.attempts_remaining)
+            score = Score(won=True,guesses=game.attempts_remaining,
+                        user=game.user_name,key=s_key)
+            score.put()
             game.store_move(guess=userGuess, message='you win',game=game)
             return game.to_form('You win!')        
           else: 
@@ -289,14 +303,15 @@ class hangman(remote.Service):
     @endpoints.method(name="ranking_table",request_message=set_limit,
                       http_method="GET",response_message=high_score)
     def ranking_table(self,request):
-       q = Score.query()
+       q = User.query()
        if (request.limit):
-         res = q.order(-Score.win_percent).fetch(request.limit)
+         res = q.order(-User.win_percent).fetch(request.limit)
        else:
-         res = q.order(-Score.win_percent)
+         res = q.order(-User.win_percent)
        arr = []
        for i in res:
-        arr.append( (i.user, i.win_percent) )
+        if(i.win_percent != 0):
+          arr.append( (i.name, i.win_percent) )
        return high_score(response=str(arr) ) 
 
     ''' 

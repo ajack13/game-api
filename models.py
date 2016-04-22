@@ -14,6 +14,9 @@ class User(ndb.Model):
     """User profile"""
     name = ndb.StringProperty(required=True)
     email =ndb.StringProperty()
+    won = ndb.IntegerProperty(required=True,default=0)
+    loss = ndb.IntegerProperty(required=True,default=0)
+    win_percent = ndb.IntegerProperty(required=True,default=0)
 
 
 class Game(ndb.Model):
@@ -58,15 +61,14 @@ class Game(ndb.Model):
         the player lost. also updates the player score win/loss guesses and win percentage"""
         self.game_over = True
         self.put()
-        key = ndb.Key( Score,user_name ).get()
+        key = ndb.Key( User,user_name ).get()
         q = key
         if(won):
             q.won += 1
         else:
-            q.lost += 1
+            q.loss += 1
         
-        q.guesses += guesses
-        tot = q.won+q.lost
+        tot = q.won+q.loss
         if(q.won != 0):
             q.win_percent =  (q.won/tot) * 100
         q.put()
@@ -82,10 +84,8 @@ class Game(ndb.Model):
 class Score(ndb.Model):
     """Score object"""
     user = ndb.StringProperty(required=True)
-    won = ndb.IntegerProperty(required=True)
-    lost = ndb.IntegerProperty(required=True)
+    won = ndb.BooleanProperty(required=True)
     guesses = ndb.IntegerProperty(required=True)
-    win_percent = ndb.IntegerProperty()
 
     def to_form(self):
         return ScoreForm(user_name=self.user.get().name, won=self.won,

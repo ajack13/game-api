@@ -10,7 +10,6 @@ primarily with communication to/from the API's users."""
 # version 1.0
 #----------------------------------------------------------------------
 
-
 import logging
 import endpoints
 from protorpc import remote, messages
@@ -19,7 +18,8 @@ from google.appengine.api import taskqueue
 import json
 
 from models import User, Game,Score
-from models import StringMessage, NewGameForm , GameForm , MakeMoveForm, ScoreForms,USER_GAMES,Get_User_Name,DELETE_GAMES,high_score
+from models import StringMessage, NewGameForm , GameForm , MakeMoveForm, ScoreForms
+from models import USER_GAMES,Get_User_Name,DELETE_GAMES,high_score
 from utils import get_by_urlsafe
 from google.appengine.ext import ndb
 
@@ -31,6 +31,7 @@ USER_REQUEST = endpoints.ResourceContainer(user_name=messages.StringField(1),
 get_user_name = endpoints.ResourceContainer(user_name=messages.StringField(1))
 set_limit = endpoints.ResourceContainer(limit=messages.IntegerField(1))
 GET_HISTORY = endpoints.ResourceContainer(urlsafe_game_key=messages.StringField(1))
+CANCEL_GAME = endpoints.ResourceContainer(urlsafe_game_key=messages.StringField(1))
 MEMCACHE_MOVES_REMAINING = 'MOVES_REMAINING'
 GET_GAME_REQUEST = endpoints.ResourceContainer(
         urlsafe_game_key=messages.StringField(1),)
@@ -62,12 +63,14 @@ class hangman(remote.Service):
                     'A User with that name already exists!')
         p_key = ndb.Key(User,request.user_name)
         # add user details
-        user = User(name = request.user_name, email = request.email , key = p_key)
+        user = User(name = request.user_name, email = request.email 
+                    , key = p_key)
         user.put()
         
         s_key = ndb.Key(Score,request.user_name)
         # enter score entity for the user 
-        score = Score(won=0,lost=0,guesses=0,win_percent=0,user=request.user_name,key=s_key)
+        score = Score(won=0,lost=0,guesses=0,win_percent=0,
+                        user=request.user_name,key=s_key)
         score.put()
         return StringMessage(message='User {} created!'.format(
                 request.user_name))
@@ -139,7 +142,7 @@ class hangman(remote.Service):
                       response_message=GameForm,
                       path='game/{urlsafe_game_key}',
                       name='make_move',
-                      http_method='PUT')
+                      http_method='POST')
     def make_move(self, request):
         """Makes a move. Returns a game state with message"""
         # get game with url_safe key
@@ -153,7 +156,8 @@ class hangman(remote.Service):
         userGuess = request.guess.upper()
         # check if user guessed the complete word
         if userGuess == game.target:
-            game.end_game(won=True,user_name=game.user_name,guesses=game.attempts_allowed - game.attempts_remaining)
+            game.end_game(won=True,user_name=game.user_name,
+                          guesses=game.attempts_allowed - game.attempts_remaining)
             # store game entry for game history
             game.store_move(guess=userGuess, message='you win',game=game)
             # update guessed word
@@ -179,7 +183,8 @@ class hangman(remote.Service):
           game.put()
           # check if game is compleated
           if game.guess == game.target:
-            game.end_game(won=True,user_name=game.user_name,guesses=game.attempts_allowed - game.attempts_remaining)
+            game.end_game(won=True,user_name=game.user_name,
+                          guesses=game.attempts_allowed - game.attempts_remaining)
             game.store_move(guess=userGuess, message='you win',game=game)
             return game.to_form('You win!')        
           else: 
@@ -230,8 +235,10 @@ class hangman(remote.Service):
         arr = []
         for i in q:
            if i.game_over == False:
-             arr.append(json.dumps({'progress':i.guess,'attempts_remaining':i.attempts_remaining,'game_over':i.game_over}))
+             arr.append(json.dumps({'progress':i.guess,'attempts_remaining':i.attempts_remaining,
+                      'game_over':i.game_over}))
         return USER_GAMES(response=arr)
+        # return USER_GAMES(response = [game.to_form_get_games() for game in q if game.game_over == True] )
 
     ''' 
      cancel(delete) all unfinished games of a user 
@@ -239,18 +246,19 @@ class hangman(remote.Service):
      returns  
      message : confermation of game deletions 
     '''
-    @endpoints.method(name="cancel_games",request_message=get_user_name, response_message=DELETE_GAMES,
-                      http_method = "GET")
+    @endpoints.method(name="cancel_games",request_message=CANCEL_GAME, 
+                      response_message=DELETE_GAMES,http_method = "DELETE")
     def cancel_games(self,request):
-        user_name = request.user_name
-        q = Game.query(ancestor = ndb.Key(User,user_name))
-        q.fetch()
-        arr = []
-        # loop through the entries and delete unfinished games
-        for i in q:
-           if i.game_over == False:
-             i.key.delete()
-        return DELETE_GAMES(response='Unfinished games deleted')
+        url_safe = request.urlsafe_game_key
+        try:
+          game = get_by_urlsafe(request.urlsafe_game_key, Game)
+          if(game.game_over == False):
+            game.key.delete()
+            return DELETE_GAMES(response='Specified game deleted')
+          else:
+            return DELETE_GAMES(response='Specified game is compleated')
+        except Exception as e:
+          return DELETE_GAMES(response='Specified game does not exist')
 
     ''' 
      get users with high scores (this is biased as a player who played more games might be on the top)  
@@ -258,7 +266,8 @@ class hangman(remote.Service):
      returns  
      json dumps : list of tuples ('username','score') 
     '''
-    @endpoints.method(name="high_scores",request_message=set_limit,http_method="GET",response_message=high_score)
+    @endpoints.method(name="high_scores",request_message=set_limit,
+                      http_method="GET",response_message=high_score)
     def high_scores(self,request):
       q = Score.query()
       if(request.limit):
@@ -277,7 +286,8 @@ class hangman(remote.Service):
      returns  
      json dumps : list of tuples ('username','win_percent')
     '''
-    @endpoints.method(name="ranking_table",request_message=set_limit,http_method="GET",response_message=high_score)
+    @endpoints.method(name="ranking_table",request_message=set_limit,
+                      http_method="GET",response_message=high_score)
     def ranking_table(self,request):
        q = Score.query()
        if (request.limit):
@@ -291,12 +301,13 @@ class hangman(remote.Service):
 
     ''' 
      get history (moves made) for a game 
-     name : game_history
+     name : get_game_history
      returns  
      json dumps : list of tuples ('move_made','response msg') 
     '''
-    @endpoints.method(http_method="POST",name="game_history",request_message=GET_HISTORY,response_message=StringMessage)
-    def game_hsitory(self,request):
+    @endpoints.method(http_method="POST",name="get_game_history",request_message=GET_HISTORY,
+                      response_message=StringMessage)
+    def get_game_history(self,request):
        game = get_by_urlsafe(request.urlsafe_game_key, Game)
        return StringMessage(message=game.history )
 

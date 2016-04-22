@@ -115,6 +115,7 @@ class MakeMoveForm(messages.Message):
     guess = messages.StringField(1, required=True)
 
 class Get_User_Name(messages.Message):
+    """Form for inbound user name"""
     user_name = messages.StringField(1, required=True)
 
 class ScoreForm(messages.Message):
@@ -135,10 +136,13 @@ class StringMessage(messages.Message):
     message = messages.StringField(1, required=True)
 
 class USER_GAMES(messages.Message):
+   """outbound incomplete games of user """
    response = messages.StringField(1,repeated=True)
 
 class DELETE_GAMES(messages.Message):
-   response = messages.StringField(1)
+    """ Outbound success message for deleting game """
+    response = messages.StringField(1)
 
 class high_score(messages.Message):
+    """ Outbound high score json as string  """
     response = messages.StringField(1)

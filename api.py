@@ -25,7 +25,8 @@ from google.appengine.ext import ndb
 
 #request_messages
 NEW_GAME_REQUEST = endpoints.ResourceContainer(NewGameForm)
-MAKE_MOVE_REQUEST = endpoints.ResourceContainer(MakeMoveForm,urlsafe_game_key=messages.StringField(1),)
+MAKE_MOVE_REQUEST = endpoints.ResourceContainer(MakeMoveForm,
+                      urlsafe_game_key=messages.StringField(1),)
 USER_REQUEST = endpoints.ResourceContainer(user_name=messages.StringField(1),
                                            email=messages.StringField(2))
 get_user_name = endpoints.ResourceContainer(user_name=messages.StringField(1))
@@ -239,9 +240,10 @@ class hangman(remote.Service):
      returns  
      json dumps of an array of all unfinished games info 
     '''
-    @endpoints.method(name="get_user_games",request_message=get_user_name, response_message=USER_GAMES,
-                      http_method = "GET")
+    @endpoints.method(name="get_user_games",request_message=get_user_name, 
+                      response_message=USER_GAMES,http_method = "GET")
     def get_user_games(self,request):
+        """Get unfinished games of a user"""
         user_name = request.user_name
         # query games for the user
         q = Game.query(ancestor = ndb.Key(User,user_name))
@@ -252,7 +254,6 @@ class hangman(remote.Service):
              arr.append(json.dumps({'progress':i.guess,'attempts_remaining':i.attempts_remaining,
                       'game_over':i.game_over}))
         return USER_GAMES(response=arr)
-        # return USER_GAMES(response = [game.to_form_get_games() for game in q if game.game_over == True] )
 
     ''' 
      cancel(delete) all unfinished games of a user 
@@ -263,6 +264,7 @@ class hangman(remote.Service):
     @endpoints.method(name="cancel_games",request_message=CANCEL_GAME, 
                       response_message=DELETE_GAMES,http_method = "DELETE")
     def cancel_games(self,request):
+        """Delete a users game"""
         url_safe = request.urlsafe_game_key
         try:
           game = get_by_urlsafe(request.urlsafe_game_key, Game)
@@ -270,12 +272,12 @@ class hangman(remote.Service):
             game.key.delete()
             return DELETE_GAMES(response='Specified game deleted')
           else:
-            return DELETE_GAMES(response='Specified game is compleated')
+            return DELETE_GAMES(response='Specified game is compleated, we cannot delete this')
         except Exception as e:
           return DELETE_GAMES(response='Specified game does not exist')
 
     ''' 
-     get users with high scores (this is biased as a player who played more games might be on the top)  
+     get users with high scores   
      name : high_scores
      returns  
      json dumps : list of tuples ('username','score') 
@@ -283,6 +285,7 @@ class hangman(remote.Service):
     @endpoints.method(name="high_scores",request_message=set_limit,
                       http_method="GET",response_message=high_score)
     def high_scores(self,request):
+      """Get games with high score"""
       q = Score.query()
       if(request.limit):
         res = q.order(-Score.guesses).fetch(request.limit)
@@ -303,6 +306,7 @@ class hangman(remote.Service):
     @endpoints.method(name="ranking_table",request_message=set_limit,
                       http_method="GET",response_message=high_score)
     def ranking_table(self,request):
+       """Get player rankings"""
        q = User.query()
        if (request.limit):
          res = q.order(-User.win_percent).fetch(request.limit)
@@ -323,6 +327,7 @@ class hangman(remote.Service):
     @endpoints.method(http_method="POST",name="get_game_history",request_message=GET_HISTORY,
                       response_message=StringMessage)
     def get_game_history(self,request):
+       """Get history of all moves played in a game"""
        game = get_by_urlsafe(request.urlsafe_game_key, Game)
        return StringMessage(message=game.history )
 

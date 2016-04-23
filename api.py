@@ -129,7 +129,7 @@ class hangman(remote.Service):
         """Return the current game state."""
         game = get_by_urlsafe(request.urlsafe_game_key, Game)
         if game:
-            return game.to_form('Time to make a move!')
+            return game.to_form('Game retrieved !')
         else:
             raise endpoints.NotFoundException('Game not found!')
 
@@ -143,7 +143,7 @@ class hangman(remote.Service):
                       response_message=GameForm,
                       path='game/{urlsafe_game_key}',
                       name='make_move',
-                      http_method='POST')
+                      http_method='PATCH')
     def make_move(self, request):
         """Makes a move. Returns a game state with message"""
         # get game with url_safe key
@@ -154,6 +154,11 @@ class hangman(remote.Service):
         s_key = ndb.Key(Score , c_id ,parent=p_key)
         # s_key = ndb.Key(Game,game.user_name) 
         
+        # check if user has run out of attempts
+        if game.attempts_remaining < 1:
+            game.end_game(won=False,user_name=game.user_name,guesses=0)
+            return game.to_form(' Game over!')
+
         # check if game is over
         if game.game_over:
             return game.to_form('Game already over!')
@@ -178,7 +183,8 @@ class hangman(remote.Service):
         # check if user has entered more than one alphabet but not the whole word
         if len(userGuess) > 1:
             game.store_move(guess=userGuess, message='Invalid entry',game=game)
-            return game.to_form('You can enter more than one alphabet only if you know the complete word')
+            retStr = 'You can enter more than one alphabet only if you know the complete word'
+            return game.to_form(retStr)
 
         wordLst = list (game.target)
         wordFlag = False
@@ -209,30 +215,10 @@ class hangman(remote.Service):
           game.store_move(guess=userGuess, message="you're wrong",game=game)
           # provide hint message 
           if(game.attempts_remaining == 5 or game.attempts_remaining == 6):
-            return game.to_form(" HINT : seems like you need help the first 3 charecters are "+wordLst[0]+wordLst[1]+wordLst[2])
+            retStr = " HINT : seems like you need help the first 3 charecters are "
+            return game.to_form(retStr+wordLst[0]+wordLst[1]+wordLst[2])
           return game.to_form("Nope , You're wrong")
 
-        # check if user has run out of attempts
-        if game.attempts_remaining < 1:
-            game.end_game(won=False,user_name=game.user_name,guesses=0)
-            return game.to_form(msg + ' Game over!')
-        else:
-            game.put()
-            return game.to_form(msg)
-
-    # ''' 
-    #  getscore (guess an alpahbet or the word) 
-    #  name : make_move
-    #  returns  
-    #  game over | invalid entry | correct guess | you win 
-    # '''
-    # @endpoints.method(response_message=ScoreForms,
-    #                   path='scores',
-    #                   name='get_scores',
-    #                   http_method='GET')
-    # def get_scores(self, request):
-    #     """Return all scores"""
-    #     return ScoreForms(items=[score.to_form() for score in Score.query()])
 
     ''' 
      Get all user games that have not finished 
@@ -251,8 +237,9 @@ class hangman(remote.Service):
         arr = []
         for i in q:
            if i.game_over == False:
-             arr.append(json.dumps({'progress':i.guess,'attempts_remaining':i.attempts_remaining,
-                      'game_over':i.game_over}))
+             arr.append(json.dumps({'progress':i.guess,
+                        'attempts_remaining':i.attempts_remaining,
+                        'game_over':i.game_over}))
         return USER_GAMES(response=arr)
 
     ''' 
@@ -272,7 +259,7 @@ class hangman(remote.Service):
             game.key.delete()
             return DELETE_GAMES(response='Specified game deleted')
           else:
-            return DELETE_GAMES(response='Specified game is compleated, we cannot delete this')
+            return DELETE_GAMES(response='This game is over, Delete not possible')
         except Exception as e:
           return DELETE_GAMES(response='Specified game does not exist')
 
@@ -324,8 +311,8 @@ class hangman(remote.Service):
      returns  
      json dumps : list of tuples ('move_made','response msg') 
     '''
-    @endpoints.method(http_method="GET",name="get_game_history",request_message=GET_HISTORY,
-                      response_message=StringMessage)
+    @endpoints.method(http_method="GET",name="get_game_history",
+                    request_message=GET_HISTORY,response_message=StringMessage)
     def get_game_history(self,request):
        """Get history of all moves played in a game"""
        game = get_by_urlsafe(request.urlsafe_game_key, Game)

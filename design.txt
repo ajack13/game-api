@@ -20,5 +20,5 @@ Trade-offs
 5)The word the user has to guess must be 6 charecters long
 
 Difficulties faced
-comming up with a fool proof game logic with error handling  
+coming up with a fool proof game logic with error handling  
 took some time to come up with a method to store game hsitory
